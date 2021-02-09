@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
 import Modal from './Modal';
-import { getTenants, editTenant } from '../commhelpers/TenantsHelpers'
+import { getTenants, commonTenantCrud, searchTenantByName, getAddressesList } from '../commhelpers/TenantsHelpers'
 
 export default function HomePage({ user }) {
     const url = 'http://localhost:1000/tenants/'
@@ -11,7 +11,7 @@ export default function HomePage({ user }) {
         { value: 'debt', label: 'With debt' },
     ];
     const [tenants, setTenants] = useState([])
-    const [pages, setPages] = useState({})
+    const [pages, setPages] = useState({currentPage:1})
     const [sort, setSort] = useState('showAll')
     const [status, setStatus] = useState(false);
     const [modalMode, setModalMode] = useState('edit');
@@ -61,85 +61,48 @@ export default function HomePage({ user }) {
             setName('')
             setPhoneNumber('')
             setAddress('')
-            setDebt('')
+            setDebt(0)
             setModalMode('newTenant')
         }
     }
-
-    const handleSaveTenant =  () => {
-        const cbSuccess = (data) => {
-            setStatus(false)
-            setTenants(data);
-            setPages({ currentPage: data.currentPage, totalPages: data.totalPages })
-        }
-        editTenant(tenantId, name, phoneNumber, address, debt, cbSuccess)
+    //commonCrud done
+    const crudCbSuccess = (data) => {
+        setStatus(false)
+        setTenants(data);
+        setPages({ currentPage: data.currentPage, totalPages: data.totalPages })
     }
-    
-    const handleNameSearch = async () => {
-        let res = await fetch(url + `namesearch/?name=${searchName}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': localStorage.token
-            },
-        })
-        let data = await res.json()
-        if (res.status === 200) {
-            if (data.tenants.length > 0) {
-                setTenants(data);
-                setPages({ currentPage: data.currentPage, totalPages: data.totalPages })
-            } else {
-                setErrorMsg("No such Tenat.")
-                setTimeout(() => {
-                    setErrorMsg('')
-                }, 1500)
-            }
-        }
+    //commonCrud done
+    const handleSaveTenant = () => {
+        commonTenantCrud('PUT', { tenantId, name, phoneNumber, address, debt }, crudCbSuccess)
     }
+    //commonCrud done
     const handleDeleteTenant = async () => {
-        let res = await fetch(url, {
-            method: "DELETE",
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': localStorage.token
-            },
-            body: JSON.stringify({ tenantId })
-        })
-        let data = await res.json()
-        if (res.status === 200) {
-            setTenants(data);
-            setPages({ currentPage: data.currentPage, totalPages: data.totalPages })
-            setStatus(false)
-        }
+        commonTenantCrud("DELETE", { tenantId }, crudCbSuccess)
     }
-    //check it
+    //common crud done
     const handleCreateTenant = async () => {
-        let res = await fetch(url, {
-            method: "POST",
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': localStorage.token
-            },
-            body: JSON.stringify({ name, phoneNumber, address, debt })
-        })
-        let data = await res.json()
-        if (res.status === 200) {
+        commonTenantCrud("POST", { name, phoneNumber, address, debt }, crudCbSuccess)
+    }
+    //done
+    const handleNameSearch = async () => {
+        const cbSuccess = (data) => {
             setTenants(data);
             setPages({ currentPage: data.currentPage, totalPages: data.totalPages })
-            setStatus(false)
         }
+        const cbErr = () => {
+            setErrorMsg("No such Tenat.")
+            setTimeout(() => {
+                setErrorMsg('')
+            }, 1500)
+        }
+        searchTenantByName(searchName, cbSuccess, cbErr)
     }
 
     const getAddresses = async () => {
-        let res = await fetch(url + 'addresses', {
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': localStorage.token
-            }
-        })
-        let data = await res.json()
-        if (res.status === 200) {
+        const cbSuccess = (data) => {
             setAddressList(data.map(address => ({ value: address._id, label: address.address })))
         }
+        getAddressesList(cbSuccess)
     }
 
     useEffect(() => {

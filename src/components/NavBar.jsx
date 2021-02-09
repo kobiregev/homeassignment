@@ -2,12 +2,9 @@ import React, { useState } from 'react'
 import { preformLogout } from '../commhelpers/SessionHelpers'
 
 
-export default function NavBar({ user, setUser }) {
-    const [status, setStatus] = useState(false);
-    
+export default function NavBar({ user, setUser }) { 
     const handleLogOut = async () => {
         const cbSuccess = () => {
-            setStatus(false)
             localStorage.removeItem('token')
             setUser({ isLoggedIn: false })
         }

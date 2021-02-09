@@ -1,7 +1,7 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import jwt_decode from "jwt-decode";
 import { useHistory } from 'react-router-dom';
-import { performLogin } from '../commhelpers/SessionHelpers'
+import { performLogin, preformLogout, validateToken } from '../commhelpers/SessionHelpers'
 
 
 export default function Login({ setUser, user }) {
@@ -10,18 +10,34 @@ export default function Login({ setUser, user }) {
     const [errorMsg, setErrorMsg] = useState("")
     const history = useHistory();
 
+    const onLoginSuccess = (token) => {
+        const { username, exp } = jwt_decode(token)
+        const tokenDate = exp * 1000
+        const currentTime = new Date().getTime()
+        const ms = tokenDate - currentTime
+        setUser({ isLoggedIn: true, username })
+        localStorage.token = token
+        history.push("/homepage")
+        //Actively loggin out user as token expires
+        setTimeout(() => {
+            preformLogout(username, onLogoutSuccess)
+        }, ms)
+    }
+    const onLogoutSuccess = () => {
+        localStorage.removeItem('token')
+        setUser({ isLoggedIn: false })
+    }
     const handleSubmit = (e) => {
-        const onLoginSuccess = (token) => {
-            const { username } = jwt_decode(token)
-            setUser({ isLooggedIn: true, username })
-            localStorage.token = token
-            history.push("/homepage")
-        }
         const onLoginFail = (data) => {
             setErrorMsg(data.msg)
         }
-        performLogin(e, onLoginSuccess, onLoginFail, {username, password})
+        performLogin(e, onLoginSuccess, onLoginFail, { username, password })
     }
+    useEffect(() => {
+        if (!user.isLoggedIn && localStorage.token) {
+            validateToken(onLoginSuccess)
+        }
+    },[])
 
     return (
         <div className="form_container" >

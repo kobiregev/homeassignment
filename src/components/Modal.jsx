@@ -3,8 +3,8 @@ import React from 'react'
 
 const Modal = ({ closeModal, children }) => {
     const closeicon = () => (
-        <i onClick={closeModal} class="fas fa-times" style={{
-            color:'black',
+        <i onClick={closeModal} className="fas fa-times" style={{
+            color: 'black',
             padding: '10px',
             cursor: 'pointer',
             backgroundColor: 'transparent',
@@ -12,10 +12,7 @@ const Modal = ({ closeModal, children }) => {
             position: 'absolute',
             top: '0.3rem',
             right: '0.5rem',
-        }}>
-
-        </i>
-
+        }}></i>
     );
 
     return (
