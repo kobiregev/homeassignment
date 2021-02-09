@@ -169,7 +169,6 @@ export default function HomePage({ user }) {
         return () => {
             setTenants([]);
         }
-
     }, [])
     return (
         <div>
