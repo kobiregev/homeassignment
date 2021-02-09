@@ -12,7 +12,8 @@ function App() {
   return (
     <Router>
       <div className="App">
-        {user.isLooggedIn ? <NavBar username={user.username} /> : null}
+        {user.isLooggedIn ? <NavBar user={user} setUser={setUser} /> : null}
+        
         <Route path="/login" component={() => <Login user={user} setUser={setUser} />} />
         <Route path="/homepage" component={() => <HomePage user={user} />} />
 
