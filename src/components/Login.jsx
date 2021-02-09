@@ -1,36 +1,28 @@
 import React, { useState } from 'react'
 import jwt_decode from "jwt-decode";
 import { useHistory } from 'react-router-dom';
+import { performLogin } from '../commhelpers/SessionHelpers'
 
 
-export default function Login({ setUser, user, blah }) {
-    const url = 'http://localhost:1000/users/login'
+export default function Login({ setUser, user }) {
     const [username, setUsername] = useState('')
     const [password, setPassword] = useState('')
     const [errorMsg, setErrorMsg] = useState("")
     const history = useHistory();
 
-    //might not need try and catch ask chamoy
-    const handleSubmit = async e => {
-        e.preventDefault();
-        try {
-            let res = await fetch(url, {
-                method: 'POST',
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({ username, password })
-            })
-            let data = await res.json()
-            if (data.token) {
-                const { username } = jwt_decode(data.token)
-                setUser({ isLooggedIn: true, username })
-                localStorage.token = data.token
-                history.push("/homepage")
-            } else {
-                setErrorMsg(data.msg)
-            }
-        } catch (error) {
+    const handleSubmit = (e) => {
+        const onLoginSuccess = (token) => {
+            const { username } = jwt_decode(token)
+            setUser({ isLooggedIn: true, username })
+            localStorage.token = token
+            history.push("/homepage")
         }
+        const onLoginFail = (data) => {
+            setErrorMsg(data.msg)
+        }
+        performLogin(e, onLoginSuccess, onLoginFail, {username, password})
     }
+
     return (
         <div className="form_container" >
             <h1>{user.username}</h1>

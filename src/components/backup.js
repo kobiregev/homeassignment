@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from 'react'
 import Select from 'react-select'
 import Modal from './Modal';
-import { getTenants, editTenant } from '../commhelpers/TenantsHelpers'
+
+let sort;
+let nextPage;
 
 export default function HomePage({ user }) {
     const url = 'http://localhost:1000/tenants/'
+
     const options = [
         { value: 'showAll', label: 'Show all' },
         { value: 'noDebt', label: 'Without debt' },
         { value: 'debt', label: 'With debt' },
     ];
+
     const [tenants, setTenants] = useState([])
     const [pages, setPages] = useState({})
-    const [sort, setSort] = useState('showAll')
     const [status, setStatus] = useState(false);
     const [modalMode, setModalMode] = useState('edit');
     const [searchName, setSearchName] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
     const [addressList, setAddressList] = useState([{}]);
+
     // form state
     const [name, setName] = useState('');
     const [tenantId, setTenantId] = useState('');
@@ -25,27 +29,37 @@ export default function HomePage({ user }) {
     const [address, setAddress] = useState('');
     const [debt, setDebt] = useState(0);
 
-    useEffect(() => {
-        const cbSuccess = (data) => {
-            setTenants(data);
-            setPages({ ...pages, totalPages: data.totalPages })
-        }
-        const cbErr = () => {
-            setErrorMsg("No Result.")
-            setTimeout(() => {
-                setErrorMsg('')
-            }, 1500)
-        }
-        getTenants(pages.currentPage, sort, cbSuccess, cbErr)
-    }, [pages.currentPage, sort])
 
-    const handleSelect = e => {
-        setSort(e.value)
-        setPages({ ...pages, currentPage: 1 })
+    const getTenants = async (page = nextPage) => {
+        let res = await fetch(url + `?page=${page || 1}&sort=${sort || 'showAll'}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': localStorage.token
+            }
+        })
+        let data = await res.json()
+        if (res.status === 200) {
+            if (data.tenants.length > 0) {
+                setTenants(data);
+                setPages({ currentPage: data.currentPage, totalPages: data.totalPages })
+            } else {
+                setErrorMsg("No Result.")
+                setTimeout(() => {
+                    setErrorMsg('')
+                }, 1500)
+            }
+        }
     }
-
+    const handleSelect = e => {
+        sort = (e.value)
+        nextPage = 1
+        getTenants()
+    }
+    
     const handlePagination = (e) => {
-        e.target.innerText === 'Next' ? setPages({ ...pages, currentPage: pages.currentPage + 1 }) : setPages({ ...pages, currentPage: pages.currentPage - 1 })
+        let clonePages = { ...pages }
+        nextPage = e.target.innerText === 'Next' ? clonePages.currentPage += 1 : clonePages.currentPage -= 1
+        getTenants(clonePages.currentPage)
     }
 
     const handleModal = (mode = 'edit', tenant = '') => {
@@ -66,15 +80,23 @@ export default function HomePage({ user }) {
         }
     }
 
-    const handleSaveTenant =  () => {
-        const cbSuccess = (data) => {
+    const handleSaveTenant = async () => {
+        console.log(address)
+        let res = await fetch(url, {
+            method: "PUT",
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': localStorage.token
+            },
+            body: JSON.stringify({ tenantId, name, phoneNumber, address, debt })
+        })
+        let data = await res.json()
+        if (res.status === 200) {
             setStatus(false)
             setTenants(data);
             setPages({ currentPage: data.currentPage, totalPages: data.totalPages })
         }
-        editTenant(tenantId, name, phoneNumber, address, debt, cbSuccess)
     }
-    
     const handleNameSearch = async () => {
         let res = await fetch(url + `namesearch/?name=${searchName}`, {
             headers: {
@@ -128,7 +150,6 @@ export default function HomePage({ user }) {
             setStatus(false)
         }
     }
-
     const getAddresses = async () => {
         let res = await fetch(url + 'addresses', {
             headers: {
@@ -143,6 +164,7 @@ export default function HomePage({ user }) {
     }
 
     useEffect(() => {
+        getTenants()
         getAddresses()
         return () => {
             setTenants([]);
@@ -168,7 +190,7 @@ export default function HomePage({ user }) {
                                 Phone Number:
                             <input className="input" defaultValue={phoneNumber} type="text" name="phoneNumber" placeholder="Phone Number" onChange={e => setPhoneNumber(e.target.value)} />
                                 Address:
-                            <Select options={addressList} onChange={e => setAddress(e.value)} />
+                            <Select options={addressList} onChange={e=>setAddress(e.value)} />
                                 Debt:
                             <input className="input" defaultValue={debt} type="number" name="Debt" placeholder="Debt" min='0' onChange={e => setDebt(e.target.value)} />
                             <div className="modal_button_container">
